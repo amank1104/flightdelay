@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Flight Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Starry background */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .star {
+            position: absolute;
+            background-color: #fff;
+            border-radius: 50%;
+            animation: twinkle 5s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        /* Glowing text effects */
+        .glow-title {
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
+            animation: pulsate 2s infinite alternate;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.7);
+        }
+
+        @keyframes pulsate {
+            0% { text-shadow: 0 极速飞艇 10px #0ff, 0 0 20px #0ff; }
+            100% { text-shadow: 0 0 15px #0ff, 0 0 30px #0ff, 0 0 40px #0ff; }
+        }
+
+        /* Airplane animation */
+        .airplane {
+            position: absolute;
+            top: 50%;
+            left: -100px;
+            transform: translateY(-50%);
+            font-size: 40px;
+            z-index: 10;
+            opacity: 0;
+        }
+
+        @keyframes fly {
+            0% {
+                left: -100px;
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                left: 100%;
+                opacity: 0;
+            }
+        }
+
+        /* Form styling */
+        .form-container {
+            background: rgba(10, 15, 35, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .input-glow {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 20, 40, 0.6);
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 15px rgba(0, 255, 255, 极速飞艇0.5);
+            border: 1px solid rgba(0, 255, 255, 0.7);
+        }
+
+        .btn-glow {
+            background: linear-gradient(45deg, #0ff, #00b3b3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+            transform: translateY(-2px);
+        }
+
+        /* Results styling */
+        .result-card {
+            background: rgba(10, 15, 35, 0.8);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-active {
+            color: #0f0;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+        }
+
+        .status-delayed {
+            color: #ff0;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+        }
+
+        .status-landed {
+            color: #0ff;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+
+        .status-scheduled {
+            color: #9cf;
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.7);
+        }
+
+        .status-cancelled {
+            color: #f00;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.7);
+        }
+        
+        /* Loading spinner */
+        .loader {
+            border: 5px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 5px solid #0ff;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Live status indicator */
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #f00;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <!-- Starry background -->
+    <div class="stars" id="stars"></div>
+    
+    <!-- Airplane animation -->
+    <div class="airplane" id="airplane">✈</div>
+
+    <!-- Main content -->
+    <div class="w-full max-w-4xl mx-auto z-10">
+        <h1 class="text-4xl md:text-5xl font-bold text-center mb-2 glow-title">REAL-TIME FLIGHT TRACKER</h1>
+        <p class="text-center mb-8 glow-text">Track live flight status and predict delays with AI analysis</p>
+        
+        <div class="form-container p-6 md:p-8 mb-8">
+            <form id="flightForm" class="space-y-6">
+                <div>
+                    <label for="flightNumber" class="block mb-2 text-lg glow-text">Flight Number</label>
+                    <input type="text" id="flightNumber" name="flightNumber" 
+                           class="w-full px-4 py-3 rounded-lg input-glow focus:outline-none" 
+                           placeholder="e.g., CA123, AI101, 6E202, UK810" required>
+                </div>
+                
+                <div>
+                    <label for="flightDate" class="block mb-2 text-lg glow-text">Date (optional)</label>
+                    <input type="date" id="flightDate" name="flightDate" 
+                           class="w-full px-4 py-3 rounded-lg input-glow focus:outline-none">
+                </div>
+                
+                <button type="submit" class="w-full py-3 rounded-lg font-bold text-lg btn-glow">
+                    TRACK FLIGHT
+                </button>
+            </form>
+        </div>
+
+        <div id="errorContainer" class="hidden result-card p-6 md:p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-center text-red-400">Error</h2>
+            <p class="text-center" id="errorMessage"></p>
+        </div>
+
+        <div id="loadingContainer" class="hidden result-card p-6 md:p-8 mb-8">
+            <h2 class="text-2xl font-bold mb-4 text-center glow-text">Fetching Flight Data</h2>
+            <p class="text-center mb-4">Connecting to live flight tracking systems...</p>
+            <div class="loader"></div>
+        </div>
+
+        <div id="resultContainer" class="hidden result-card p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold glow-text">Flight Information</h2>
+                <span class="live-indicator"></span>
+                <span class="text-sm text-cyan-300">LIVE</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Flight Details</h3>
+                    <p><span class="glow-text">Flight:</span> <span id="result-flight-number"></span></p>
+                    <p><span class="glow-text">Status:</span> <span id="result-status"></span></p>
+                    <p><span class="glow-text">Route:</span> <span id="result-route"></span></p>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Schedule</h3>
+                    <p><span class="gl极速飞艇ow-text">Scheduled Departure:</span> <span id="result-scheduled-departure"></span></p>
+                    <p><span class="glow-text">Estimated Departure:</span> <span id="result-estimated-departure"></span></p>
+                    <p><span class="glow-text">Scheduled Arrival:</span> <span id="result-scheduled-arrival"></span></p>
+                    <p><span class="glow-text">Estimated Arrival:</span> <span id="result-estimated-arrival"></span></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Airport Information</h3>
+                    <p><span class="glow-text">Terminal:</span> <span id="result-terminal"></span></p>
+                    <p><span class="glow-text">Gate:</span> <span id="result-gate"></span></p>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Delay Information</h3>
+                    <p><span class="glow-text">Departure Delay:</span> <span id="result-departure-delay"></span></极速飞艇p>
+                    <p><span class="glow-text">Arrival Delay:</span> <span id="result-arrival-delay"></span></p>
+                    <p><span class="glow-text">Predicted Delay:</span> <span id="result-predicted-delay"></span></p>
+                    <p><span class="glow-text">Confidence:</span> <span id="result-confidence"></span></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Weather at Departure</h3>
+                    <p><span class="glow-text">Condition:</span> <span id="result-weather-condition"></span></p>
+                    <p><span class="glow-text">Temperature:</span> <span id="result-weather-temp"></span></p>
+                </div>
+                
+                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-2 glow-text">Prediction Reason</h3>
+                    <p id="result-reason" class="mt-2"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create stars
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const starsCount = 200;
+            
+            for (let i = 0; i < starsCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 5}s`;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Animate airplane
+        function animateAirplane() {
+            const airplane = document.getElementById('airplane');
+            airplane.style.animation = 'none';
+            setTimeout(() => {
+                airplane.style.animation = 'fly 15s linear';
+            }, 10);
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorContainer').classList.remove('hidden');
+            document.getElementById('loadingContainer').classList.add('hidden');
+            document.getElementById('resultContainer').class极速飞艇List.add('hidden');
+        }
+
+        // Show loading state
+        function showLoading() {
+            document.getElementById('errorContainer').classList.add('hidden');
+            document.getElementById('loadingContainer').classList.remove('hidden');
+            document.getElementById('resultContainer').classList.add('hidden');
+        }
+
+        // Format time
+        function formatTime(timeString) {
+            if (!timeString) return 'Unknown';
+            
+            try {
+                const date = new Date(timeString);
+                return date.toLocaleString();
+            } catch (e) {
+                return timeString;
+            }
+        }
+
+        // Format delay
+        function formatDelay(minutes) {
+            if (minutes === 0) return 'On time';
+            if (minutes > 0) return `+${minutes} minutes`;
+            return `${minutes} minutes (early)`;
+        }
+
+        // Show results
+        function showResults(data) {
+            document.getElementById('errorContainer').classList.add('hidden');
+            document.getElementById('loadingContainer').classList.add('hidden');
+            
+            const flight = data.flight_data;
+            const weather = data.weather_data;
+            const prediction = data.prediction;
+            
+            // Update DOM elements
+            document.getElementById('result-flight-number').textContent = flight.flight_number;
+            document.getElementById('result-status').textContent = flight.status;
+            document.getElementById('result-status').className = `text-xl font-bold status-${flight.status.toLowerCase()}`;
+            document.getElementById('result-route').textContent = `${flight.departure_airport} (${flight.departure_iata}) → ${flight.arrival_airport} (${flight.arrival_iata})`;
+            
+            document.getElementById('result-scheduled-departure').textContent = formatTime(flight.scheduled_departure);
+            document.getElementById('result-estimated-departure').textContent = formatTime(flight.estimated_departure);
+            document.getElementById('result-scheduled-arrival').textContent = formatTime(flight.scheduled_arrival);
+            document.getElementById('result-estimated-arrival').textContent = formatTime(flight.estimated_arrival);
+            
+            document.getElementById('result-terminal').textContent = flight.terminal;
+            document.getElementById('result-gate').textContent = flight.gate;
+            
+            document.getElementById('result-departure-delay').textContent = formatDelay(flight.departure_delay);
+            document.getElementById('result-arrival-delay').textContent = formatDelay(flight.arrival_delay);
+            document.getElementById('result-predicted-delay').textContent = formatDelay(prediction.predicted_delay);
+            document.getElementById('result-confidence').textContent = prediction.confidence;
+            
+            document.getElementById('result-weather-condition').textContent = weather.condition;
+            document.getElementById('result-weather-temp').textContent = `${weather.temp}°C`;
+            
+            document.getElementById('result-reason').textContent = prediction.reason;
+            
+            document.getElementById('resultContainer').classList.remove('hidden');
+        }
+
+        // Handle form submission
+        document.getElementById('flightForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const flightNumber = document.getElementById('flightNumber').value.trim().toUpperCase();
+            const flightDate = document.getElementById('flightDate').value;
+            
+            if (!flightNumber) {
+                showError("Please enter a flight number.");
+                return;
+            }
+            
+            // Validate flight number format
+            const flightNumberRegex = /^[A-Z0-9]{2,3}-?[0-9]{1,4}[A-Z]?$/;
+            if (!flightNumberRegex.test(flightNumber)) {
+                showError("Invalid flight number format. Examples: CA123, AI101, 6E202, UK810");
+                return;
+            }
+            
+            // Show loading state
+            showLoading();
+            animateAirplane();
+            
+            // Fetch flight data
+            fetch('/get_flight_info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    flight_number: flightNumber,
+                    date: flightDate
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    showResults(data);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError("Failed to fetch flight data. Please try again.");
+            });
+        });
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            createStars();
+            
+            // Set today's date as default for the date input
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('flightDate').value = today;
+            
+            // Trigger airplane animation on page load
+            setTimeout(animateAirplane, 1000);
+        });
+    </script>
+</body>
+</html>
